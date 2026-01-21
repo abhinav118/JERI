@@ -1,0 +1,161 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background-color: #1e1e2e;
+  color: #cdd6f4;
+  -webkit-app-region: drag;
+}
+
+/* Make interactive elements not draggable */
+button, input, a, .no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1e1e2e;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #45475a;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #585b70;
+}
+
+/* Tab transitions */
+.tab-transition {
+  transition: all 0.15s ease-in-out;
+}
+
+/* Fade in animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* Slide in from right */
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.2s ease-out;
+}
+
+/* Pulse animation for loading */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* Input focus styles */
+input:focus {
+  outline: none;
+}
+
+/* Button hover effects */
+.btn-hover:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Address bar styling */
+.address-bar {
+  background: #313244;
+  border: 1px solid #45475a;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.address-bar:focus-within {
+  border-color: #89b4fa;
+  box-shadow: 0 0 0 2px rgba(137, 180, 250, 0.2);
+}
+
+/* Sidebar styling */
+.sidebar {
+  background: linear-gradient(180deg, #1e1e2e 0%, #181825 100%);
+  border-left: 1px solid #313244;
+}
+
+/* Companion card */
+.companion-card {
+  background: #313244;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.companion-card:hover {
+  background: #45475a;
+  border-color: #585b70;
+}
+
+.companion-card.active {
+  background: rgba(137, 180, 250, 0.1);
+  border-color: #89b4fa;
+}
+
+/* Modal overlay */
+.modal-overlay {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+/* Thinking indicator */
+.thinking-dot {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.thinking-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.thinking-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
