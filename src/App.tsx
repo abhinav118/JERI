@@ -207,7 +207,11 @@ function App() {
         onCreateTab={handleCreateTab}
         onCloseTab={handleCloseTab}
         onSwitchTab={handleSwitchTab}
-        onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+        onToggleSidebar={() => {
+          const newState = !isSidebarOpen;
+          setIsSidebarOpen(newState);
+          window.electronAPI.setSidebarWidth(newState ? 320 : 0);
+        }}
         isSidebarOpen={isSidebarOpen}
         onOpenSettings={() => setIsSettingsOpen(true)}
       />
@@ -217,7 +221,10 @@ function App() {
         {/* Sidebar */}
         <Sidebar
           isOpen={isSidebarOpen}
-          onClose={() => setIsSidebarOpen(false)}
+          onClose={() => {
+            setIsSidebarOpen(false);
+            window.electronAPI.setSidebarWidth(0);
+          }}
           selectedCompanion={selectedCompanion}
           onSelectCompanion={handleSelectCompanion}
           agentStatus={agentStatus}

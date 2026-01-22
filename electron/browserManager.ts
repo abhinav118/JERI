@@ -14,6 +14,7 @@ export class BrowserManager {
   private tabs: Map<string, ManagedTab> = new Map();
   private activeTabId: string | null = null;
   private tabCounter = 0;
+  private sidebarWidth = 0;
 
   constructor(mainWindow: BrowserWindow) {
     this.mainWindow = mainWindow;
@@ -51,6 +52,11 @@ export class BrowserManager {
 
     ipcMain.handle('get-tabs', async () => {
       return this.getTabs();
+    });
+
+    ipcMain.handle('set-sidebar-width', async (_, width: number) => {
+      this.sidebarWidth = width;
+      this.resizeView();
     });
   }
 
@@ -273,13 +279,15 @@ export class BrowserManager {
 
     const bounds = this.mainWindow.getBounds();
     // Leave space for browser chrome (tabs + address bar)
-    const chromeHeight = 90; // Adjust based on your UI
+    const chromeHeight = 90;
+    // Leave space for command input at bottom
+    const bottomHeight = 80;
 
     tab.view.setBounds({
       x: 0,
       y: chromeHeight,
-      width: bounds.width,
-      height: bounds.height - chromeHeight,
+      width: bounds.width - this.sidebarWidth,
+      height: bounds.height - chromeHeight - bottomHeight,
     });
   }
 
