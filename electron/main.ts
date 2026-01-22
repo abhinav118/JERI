@@ -98,9 +98,3 @@ ipcMain.handle('get-app-info', () => {
   };
 });
 
-// IPC handler for setting sidebar width (adjusts BrowserView)
-ipcMain.handle('set-sidebar-width', (_, width: number) => {
-  // This would be used if we want the sidebar to push the BrowserView
-  // For now, the sidebar overlays
-  console.log('Sidebar width:', width);
-});
