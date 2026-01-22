@@ -431,10 +431,13 @@ function PureMultimodalInput({
   );
 
   const submitForm = useCallback(() => {
+    console.log('MultimodalInput submitForm called, input:', input);
     if (input.trim().length === 0 && attachments.length === 0) {
+      console.log('No input or attachments, returning');
       return;
     }
 
+    console.log('Calling onSendMessage with:', { input, attachments });
     onSendMessage({ input, attachments });
 
     setInput('');

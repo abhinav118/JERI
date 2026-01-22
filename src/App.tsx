@@ -158,29 +158,35 @@ function App() {
 
   // Chat message handler
   const handleSendMessage = async (message: string) => {
+    console.log('handleSendMessage called with:', message);
+
     if (!hasApiKey()) {
+      console.log('No API key, opening settings');
       setIsSettingsOpen(true);
       return;
     }
 
+    const messageId = Date.now();
+
     // Add user message
     const userMessage: ChatMessage = {
-      id: `user-${Date.now()}`,
+      id: `user-${messageId}`,
       role: 'user',
       content: message,
       timestamp: new Date(),
     };
-    setChatMessages(prev => [...prev, userMessage]);
 
     // Add loading message
     const loadingMessage: ChatMessage = {
-      id: `assistant-${Date.now()}`,
+      id: `assistant-${messageId}`,
       role: 'assistant',
       content: '',
       timestamp: new Date(),
       isLoading: true,
     };
-    setChatMessages(prev => [...prev, loadingMessage]);
+
+    // Add both messages at once
+    setChatMessages(prev => [...prev, userMessage, loadingMessage]);
 
     setAgentStatus({
       isRunning: true,
@@ -191,21 +197,29 @@ function App() {
 
     try {
       // Get browser context
-      const browserContext = await getBrowserContext();
+      let browserContext = '';
+      try {
+        browserContext = await getBrowserContext();
+        console.log('Browser context retrieved, length:', browserContext.length);
+      } catch (contextError) {
+        console.warn('Failed to get browser context:', contextError);
+        browserContext = `Current Page:\n- URL: ${currentUrl || 'unknown'}\n- Title: ${currentTitle || 'unknown'}\n`;
+      }
 
-      // Build conversation history for context
+      // Build conversation history for context (exclude the messages we just added)
       const conversationHistory = chatMessages
         .filter(m => !m.isLoading)
-        .slice(-10) // Last 10 messages for context
+        .slice(-10)
         .map(m => ({
           role: m.role as 'user' | 'assistant',
           content: m.content,
         }));
 
       // Create the prompt with browser context
-      const contextualPrompt = `${browserContext}\n\nUser question: ${message}\n\nRespond helpfully based on the page context. If the user asks about the page, use the content above. Keep your response concise.`;
+      const contextualPrompt = `${browserContext}\n\nUser question: ${message}\n\nRespond helpfully based on the page context. If the user asks about the page, use the content above. Keep your response concise and conversational.`;
 
       setAgentStatus(prev => ({ ...prev, thought: 'Generating response...' }));
+      console.log('Calling Gemini API...');
 
       // Get AI response
       const response = await chat(
@@ -213,12 +227,13 @@ function App() {
         [...conversationHistory, { role: 'user', content: contextualPrompt }]
       );
 
+      console.log('Got response from Gemini:', response.substring(0, 100));
+
       // Parse response - check if it's JSON (action) or plain text (chat)
       let responseText = response;
       try {
         const parsed = JSON.parse(response);
         if (parsed.thought && parsed.action) {
-          // It's an action response
           if (parsed.done && parsed.result) {
             responseText = parsed.result;
           } else {
@@ -240,11 +255,13 @@ function App() {
 
     } catch (error) {
       console.error('Chat error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to get response';
+
       // Update loading message with error
       setChatMessages(prev =>
         prev.map(m =>
           m.id === loadingMessage.id
-            ? { ...m, content: `Error: ${error instanceof Error ? error.message : 'Failed to get response'}`, isLoading: false }
+            ? { ...m, content: `Error: ${errorMessage}`, isLoading: false }
             : m
         )
       );

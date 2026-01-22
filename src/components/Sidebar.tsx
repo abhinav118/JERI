@@ -46,6 +46,7 @@ export default function Sidebar({
   }, []);
 
   const handleSendMessage = useCallback(({ input }: { input: string; attachments: Attachment[] }) => {
+    console.log('Sidebar handleSendMessage called with:', input);
     if (input.trim()) {
       onSendMessage(input.trim());
     }
@@ -139,7 +140,10 @@ export default function Sidebar({
               ].map((suggestion, i) => (
                 <button
                   key={i}
-                  onClick={() => onSendMessage(suggestion)}
+                  onClick={() => {
+                    console.log('Quick suggestion clicked:', suggestion);
+                    onSendMessage(suggestion);
+                  }}
                   className="text-left px-3 py-2 bg-browser-surface hover:bg-browser-surface/80 rounded-lg text-sm text-browser-text transition-colors"
                 >
                   {suggestion}
