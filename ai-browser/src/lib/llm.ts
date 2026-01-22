@@ -1,27 +1,26 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenerativeAI, Content, Part } from '@google/generative-ai';
 import { Message } from '../types';
 
-// API key storage - in production this would be more secure
-let apiKey: string | null = null;
+// API key - hardcoded for this project
+const GEMINI_API_KEY = 'AIzaSyA7bWRcQXRt5CRxSPniOhEMEvA0GPQ91NA';
+
+// API key storage - kept for compatibility but using hardcoded key
+let apiKey: string | null = GEMINI_API_KEY;
 
 export function setApiKey(key: string): void {
   apiKey = key;
-  localStorage.setItem('anthropic_api_key', key);
+  localStorage.setItem('gemini_api_key', key);
 }
 
 export function getApiKey(): string | null {
-  if (apiKey) return apiKey;
-  apiKey = localStorage.getItem('anthropic_api_key');
-  return apiKey;
+  return apiKey || GEMINI_API_KEY;
 }
 
 export function hasApiKey(): boolean {
-  return !!getApiKey();
+  return true; // Always has key since it's hardcoded
 }
 
-type ContentBlockParam = Anthropic.Messages.TextBlockParam | Anthropic.Messages.ImageBlockParam;
-
-export async function callClaude(
+export async function callGemini(
   systemPrompt: string,
   history: Message[],
   userMessage: string,
@@ -29,91 +28,81 @@ export async function callClaude(
 ): Promise<string> {
   const key = getApiKey();
   if (!key) {
-    throw new Error('API key not set. Please set your Anthropic API key.');
+    throw new Error('API key not set.');
   }
 
-  const client = new Anthropic({
-    apiKey: key,
+  const genAI = new GoogleGenerativeAI(key);
+  const model = genAI.getGenerativeModel({
+    model: 'gemini-1.5-flash',
+    systemInstruction: systemPrompt,
   });
 
-  // Build messages array
-  const messages: Anthropic.Messages.MessageParam[] = [];
+  // Build chat history
+  const chatHistory: Content[] = [];
 
   // Add history
   for (const msg of history) {
+    const parts: Part[] = [];
+
     if (typeof msg.content === 'string') {
-      messages.push({
-        role: msg.role,
-        content: msg.content,
-      });
+      parts.push({ text: msg.content });
     } else {
-      // Convert our message format to Anthropic's
-      const content: ContentBlockParam[] = msg.content.map((block) => {
-        if (block.type === 'text') {
-          return { type: 'text' as const, text: block.text || '' };
+      for (const block of msg.content) {
+        if (block.type === 'text' && block.text) {
+          parts.push({ text: block.text });
         } else if (block.type === 'image' && block.source) {
-          return {
-            type: 'image' as const,
-            source: {
-              type: 'base64' as const,
-              media_type: 'image/png' as const,
+          parts.push({
+            inlineData: {
+              mimeType: 'image/png',
               data: block.source.data,
             },
-          };
+          });
         }
-        return { type: 'text' as const, text: '' };
-      });
-      messages.push({
-        role: msg.role,
-        content,
-      });
+      }
     }
+
+    chatHistory.push({
+      role: msg.role === 'assistant' ? 'model' : 'user',
+      parts,
+    });
   }
 
-  // Add current message with optional screenshot
-  const currentContent: ContentBlockParam[] = [];
+  // Build current message parts
+  const currentParts: Part[] = [];
 
   if (screenshot) {
-    currentContent.push({
-      type: 'image' as const,
-      source: {
-        type: 'base64' as const,
-        media_type: 'image/png' as const,
+    currentParts.push({
+      inlineData: {
+        mimeType: 'image/png',
         data: screenshot,
       },
     });
   }
 
-  currentContent.push({
-    type: 'text' as const,
-    text: userMessage,
-  });
-
-  messages.push({
-    role: 'user',
-    content: currentContent,
-  });
+  currentParts.push({ text: userMessage });
 
   try {
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 2048,
-      system: systemPrompt,
-      messages,
+    const chat = model.startChat({
+      history: chatHistory,
     });
 
-    // Extract text from response
-    const textBlock = response.content.find((block) => block.type === 'text');
-    if (textBlock && textBlock.type === 'text') {
-      return textBlock.text;
+    const result = await chat.sendMessage(currentParts);
+    const response = result.response;
+    const text = response.text();
+
+    if (!text) {
+      throw new Error('No text response from Gemini');
     }
 
-    throw new Error('No text response from Claude');
+    return text;
   } catch (error) {
-    console.error('Claude API error:', error);
+    console.error('Gemini API error:', error);
     throw error;
   }
 }
+
+// Alias for backward compatibility
+export const callClaude = callGemini;
 
 // Vision-specific call for screenshot analysis
 export async function analyzeScreenshot(
@@ -125,38 +114,25 @@ export async function analyzeScreenshot(
     throw new Error('API key not set');
   }
 
-  const client = new Anthropic({
-    apiKey: key,
-  });
+  const genAI = new GoogleGenerativeAI(key);
+  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
-  const response = await client.messages.create({
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: 1024,
-    messages: [
-      {
-        role: 'user',
-        content: [
-          {
-            type: 'image' as const,
-            source: {
-              type: 'base64' as const,
-              media_type: 'image/png' as const,
-              data: screenshot,
-            },
-          },
-          {
-            type: 'text' as const,
-            text: prompt,
-          },
-        ],
+  const result = await model.generateContent([
+    {
+      inlineData: {
+        mimeType: 'image/png',
+        data: screenshot,
       },
-    ],
-  });
+    },
+    { text: prompt },
+  ]);
 
-  const textBlock = response.content.find((block) => block.type === 'text');
-  if (textBlock && textBlock.type === 'text') {
-    return textBlock.text;
+  const response = result.response;
+  const text = response.text();
+
+  if (!text) {
+    throw new Error('No text response from Gemini');
   }
 
-  throw new Error('No text response from Claude');
+  return text;
 }

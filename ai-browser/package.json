@@ -10,7 +10,7 @@
     "postinstall": "electron-builder install-app-deps"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.26.0",
+    "@google/generative-ai": "^0.21.0",
     "better-sqlite3": "^11.3.0",
     "lucide-react": "^0.441.0"
   },

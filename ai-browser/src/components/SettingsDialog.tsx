@@ -16,7 +16,7 @@ export default function SettingsDialog({ isOpen, onClose }: SettingsDialogProps)
       const key = getApiKey();
       if (key) {
         // Show masked key
-        setApiKeyInput('sk-ant-••••••••••••••••');
+        setApiKeyInput('AIza••••••••••••••••');
       } else {
         setApiKeyInput('');
       }
@@ -55,7 +55,7 @@ export default function SettingsDialog({ isOpen, onClose }: SettingsDialogProps)
           {/* API Key */}
           <div>
             <label className="block text-sm font-medium text-browser-text mb-2">
-              Anthropic API Key
+              Google Gemini API Key
             </label>
             <div className="flex items-center gap-2">
               <div className="flex-1 flex items-center bg-browser-surface rounded-lg px-3 py-2">
@@ -64,13 +64,13 @@ export default function SettingsDialog({ isOpen, onClose }: SettingsDialogProps)
                   type="password"
                   value={apiKeyInput}
                   onChange={(e) => setApiKeyInput(e.target.value)}
-                  placeholder="sk-ant-..."
+                  placeholder="AIza..."
                   className="flex-1 bg-transparent text-browser-text placeholder-browser-subtext outline-none text-sm"
                 />
               </div>
             </div>
             <p className="text-xs text-browser-subtext mt-2">
-              Your API key is stored locally and never sent anywhere except Anthropic.
+              Your API key is stored locally and only sent to Google's Gemini API.
             </p>
           </div>
 

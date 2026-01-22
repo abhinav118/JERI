@@ -14,7 +14,7 @@ An AI-powered browser with "companions" (AI agents) that can automate web tasks,
 
 - **Framework**: Electron 31+ with electron-vite
 - **UI**: React 18 + TypeScript + Tailwind CSS
-- **AI**: Anthropic Claude API (@anthropic-ai/sdk)
+- **AI**: Google Gemini API (@google/generative-ai)
 - **Storage**: better-sqlite3 for local data
 - **Browser Control**: Chrome DevTools Protocol via webContents.debugger
 
@@ -46,7 +46,7 @@ ai-browser/
 │   │   ├── companions.ts       # Companion definitions
 │   │   └── prompts.ts          # System prompts
 │   ├── lib/
-│   │   ├── llm.ts              # Claude API wrapper
+│   │   ├── llm.ts              # Gemini API wrapper
 │   │   ├── ipc.ts              # Renderer IPC helpers
 │   │   └── storage.ts          # Local storage helpers
 │   └── types/
@@ -64,7 +64,7 @@ ai-browser/
 
 - Node.js 18+
 - npm or yarn
-- Anthropic API key
+- Google Gemini API key (already configured)
 
 ### Installation
 
@@ -74,9 +74,7 @@ ai-browser/
    npm install
    ```
 
-2. Set up your API key:
-   - Either set `ANTHROPIC_API_KEY` environment variable
-   - Or configure it in the app via Settings (gear icon)
+2. The Gemini API key is already configured in the app.
 
 ### Development
 
@@ -115,7 +113,7 @@ This builds the app for production.
 ### Agent Loop
 
 1. Capture screenshot + DOM of current page
-2. Send to Claude with goal + conversation history
+2. Send to Gemini with goal + conversation history
 3. Parse JSON action from response
 4. Check if approval needed for sensitive actions
 5. Execute action via CDP (click, type, scroll, etc.)
