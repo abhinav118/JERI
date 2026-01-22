@@ -1,11 +1,11 @@
 import { GoogleGenerativeAI, Content, Part } from '@google/generative-ai';
 import { Message } from '../types';
 
-// API key - hardcoded for this project
-const GEMINI_API_KEY = 'AIzaSyA7bWRcQXRt5CRxSPniOhEMEvA0GPQ91NA';
+// Get API key from environment variable (set in .env file as VITE_GEMINI_API_KEY)
+const ENV_API_KEY = import.meta.env.VITE_GEMINI_API_KEY as string | undefined;
 
-// API key storage - kept for compatibility but using hardcoded key
-let apiKey: string | null = GEMINI_API_KEY;
+// API key storage - can be overridden via settings
+let apiKey: string | null = ENV_API_KEY || null;
 
 export function setApiKey(key: string): void {
   apiKey = key;
@@ -13,11 +13,18 @@ export function setApiKey(key: string): void {
 }
 
 export function getApiKey(): string | null {
-  return apiKey || GEMINI_API_KEY;
+  // Priority: 1) Runtime set key, 2) localStorage, 3) env variable
+  if (apiKey) return apiKey;
+  const stored = localStorage.getItem('gemini_api_key');
+  if (stored) {
+    apiKey = stored;
+    return stored;
+  }
+  return ENV_API_KEY || null;
 }
 
 export function hasApiKey(): boolean {
-  return true; // Always has key since it's hardcoded
+  return !!getApiKey();
 }
 
 export async function callGemini(
@@ -28,7 +35,7 @@ export async function callGemini(
 ): Promise<string> {
   const key = getApiKey();
   if (!key) {
-    throw new Error('API key not set.');
+    throw new Error('API key not set. Please add VITE_GEMINI_API_KEY to your .env file.');
   }
 
   const genAI = new GoogleGenerativeAI(key);
