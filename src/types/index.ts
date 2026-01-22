@@ -69,6 +69,15 @@ export interface Message {
   content: string | MessageContent[];
 }
 
+// Chat message for sidebar chat UI
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+  isLoading?: boolean;
+}
+
 export interface MessageContent {
   type: 'text' | 'image';
   text?: string;
@@ -125,7 +134,11 @@ export interface ElectronAPI {
   // Agent actions
   captureScreen: () => Promise<{ success: boolean; data?: string; error?: string }>;
   extractDOM: () => Promise<{ success: boolean; data?: DOMElement[]; error?: string }>;
+  extractPageText: () => Promise<{ success: boolean; data?: string; error?: string }>;
   executeAction: (action: BrowserAction) => Promise<{ success: boolean; error?: string; result?: string }>;
+
+  // UI control
+  setSidebarWidth: (width: number) => Promise<void>;
 
   // Events
   onUrlChange: (callback: (url: string) => void) => () => void;

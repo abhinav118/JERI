@@ -3,6 +3,14 @@ import { PROMPTS } from './prompts';
 
 export const companions: Companion[] = [
   {
+    id: 'jeri',
+    name: 'JERI',
+    avatar: '🤖',
+    description: 'Your general-purpose AI assistant. Can help with any browsing task, answer questions, and interact with web pages.',
+    systemPrompt: PROMPTS.JERI,
+    approvalRequired: [],
+  },
+  {
     id: 'extractor-ella',
     name: 'Extractor Ella',
     avatar: '📊',
@@ -35,14 +43,6 @@ export const companions: Companion[] = [
     approvalRequired: ['submit'],
   },
   {
-    id: 'sales-sally',
-    name: 'Sales Sally',
-    avatar: '👩‍💼',
-    description: 'Finds leads and extracts contact information. Perfect for prospecting on LinkedIn or company sites.',
-    systemPrompt: PROMPTS.SALES,
-    approvalRequired: ['send_message', 'connect'],
-  },
-  {
     id: 'shopper-sam',
     name: 'Shopper Sam',
     avatar: '🛒',
@@ -51,3 +51,6 @@ export const companions: Companion[] = [
     approvalRequired: ['checkout', 'add_to_cart'],
   },
 ];
+
+// Default companion
+export const defaultCompanion = companions[0]; // JERI

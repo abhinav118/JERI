@@ -111,6 +111,54 @@ export async function callGemini(
 // Alias for backward compatibility
 export const callClaude = callGemini;
 
+// Simple chat function for conversational use
+export async function chat(
+  systemPrompt: string,
+  messages: Array<{ role: 'user' | 'assistant'; content: string }>
+): Promise<string> {
+  const key = getApiKey();
+  if (!key) {
+    throw new Error('API key not set. Please add your Gemini API key in Settings.');
+  }
+
+  const genAI = new GoogleGenerativeAI(key);
+  const model = genAI.getGenerativeModel({
+    model: 'gemini-1.5-flash',
+    systemInstruction: systemPrompt,
+  });
+
+  // Build chat history (all but last message)
+  const chatHistory: Content[] = messages.slice(0, -1).map(msg => ({
+    role: msg.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: msg.content }],
+  }));
+
+  // Get the last message
+  const lastMessage = messages[messages.length - 1];
+  if (!lastMessage) {
+    throw new Error('No messages provided');
+  }
+
+  try {
+    const chatSession = model.startChat({
+      history: chatHistory,
+    });
+
+    const result = await chatSession.sendMessage(lastMessage.content);
+    const response = result.response;
+    const text = response.text();
+
+    if (!text) {
+      throw new Error('No text response from Gemini');
+    }
+
+    return text;
+  } catch (error) {
+    console.error('Gemini chat error:', error);
+    throw error;
+  }
+}
+
 // Vision-specific call for screenshot analysis
 export async function analyzeScreenshot(
   screenshot: string,

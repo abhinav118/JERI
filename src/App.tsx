@@ -1,24 +1,26 @@
 import { useState, useEffect } from 'react';
 import BrowserChrome from './components/BrowserChrome';
 import Sidebar from './components/Sidebar';
-import CommandInput from './components/CommandInput';
 import ApprovalDialog from './components/ApprovalDialog';
 import SettingsDialog from './components/SettingsDialog';
-import { Tab, Companion, AgentStatus, BrowserAction } from './types';
-import { hasApiKey } from './lib/llm';
+import { Tab, Companion, AgentStatus, BrowserAction, ChatMessage } from './types';
+import { hasApiKey, chat } from './lib/llm';
+import { defaultCompanion } from './agents/companions';
 
 function App() {
   // Browser state
   const [tabs, setTabs] = useState<Tab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const [currentUrl, setCurrentUrl] = useState('');
-  // Title is tracked for future tab display features
-  const [, setCurrentTitle] = useState('');
+  const [currentTitle, setCurrentTitle] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   // Sidebar state
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [selectedCompanion, setSelectedCompanion] = useState<Companion | null>(null);
+  const [selectedCompanion, setSelectedCompanion] = useState<Companion>(defaultCompanion);
+
+  // Chat state
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
 
   // Settings dialog state
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -29,7 +31,6 @@ function App() {
     currentStep: 0,
     totalSteps: 0,
   });
-  const [agentResult, setAgentResult] = useState<string | null>(null);
 
   // Approval dialog state
   const [pendingApproval, setPendingApproval] = useState<{
@@ -114,58 +115,139 @@ function App() {
   // Companion handlers
   const handleSelectCompanion = (companion: Companion) => {
     setSelectedCompanion(companion);
-    setAgentResult(null);
+    // Clear chat when switching companions
+    setChatMessages([]);
   };
 
-  // Command handler - runs agent
-  const handleCommand = async (command: string) => {
-    if (!selectedCompanion) {
-      alert('Please select a companion first');
-      return;
-    }
+  // Get browser context for the AI
+  const getBrowserContext = async (): Promise<string> => {
+    try {
+      // Get screenshot and DOM info
+      const [screenshotResult, domResult] = await Promise.all([
+        window.electronAPI.captureScreen(),
+        window.electronAPI.extractDOM(),
+      ]);
 
+      let context = `Current Page:\n- URL: ${currentUrl}\n- Title: ${currentTitle}\n\n`;
+
+      if (domResult.success && domResult.data) {
+        // Extract text content from DOM
+        const extractText = (elements: any[], depth = 0): string => {
+          let text = '';
+          for (const el of elements.slice(0, 50)) { // Limit elements
+            if (el.text && el.text.trim()) {
+              text += el.text.trim() + '\n';
+            }
+            if (el.children) {
+              text += extractText(el.children, depth + 1);
+            }
+          }
+          return text;
+        };
+
+        const pageText = extractText(domResult.data).slice(0, 3000); // Limit text
+        context += `Page Content:\n${pageText}\n`;
+      }
+
+      return context;
+    } catch (error) {
+      console.error('Failed to get browser context:', error);
+      return `Current Page:\n- URL: ${currentUrl}\n- Title: ${currentTitle}\n`;
+    }
+  };
+
+  // Chat message handler
+  const handleSendMessage = async (message: string) => {
     if (!hasApiKey()) {
       setIsSettingsOpen(true);
       return;
     }
 
+    // Add user message
+    const userMessage: ChatMessage = {
+      id: `user-${Date.now()}`,
+      role: 'user',
+      content: message,
+      timestamp: new Date(),
+    };
+    setChatMessages(prev => [...prev, userMessage]);
+
+    // Add loading message
+    const loadingMessage: ChatMessage = {
+      id: `assistant-${Date.now()}`,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date(),
+      isLoading: true,
+    };
+    setChatMessages(prev => [...prev, loadingMessage]);
+
     setAgentStatus({
       isRunning: true,
-      currentStep: 0,
-      totalSteps: 0,
-      thought: 'Starting...',
+      currentStep: 1,
+      totalSteps: 1,
+      thought: 'Analyzing page context...',
     });
-    setAgentResult(null);
 
     try {
-      // Import and run agent engine
-      const { AgentEngine } = await import('./agents/AgentEngine');
-      const engine = new AgentEngine();
+      // Get browser context
+      const browserContext = await getBrowserContext();
 
-      const result = await engine.run(
-        command,
-        selectedCompanion,
-        (status) => setAgentStatus(status),
-        async (action, description) => {
-          return new Promise((resolve) => {
-            setPendingApproval({
-              action,
-              description,
-            });
-            // This will be resolved by the approval dialog
-            (window as any).__approvalResolver = resolve;
-          });
-        }
+      // Build conversation history for context
+      const conversationHistory = chatMessages
+        .filter(m => !m.isLoading)
+        .slice(-10) // Last 10 messages for context
+        .map(m => ({
+          role: m.role as 'user' | 'assistant',
+          content: m.content,
+        }));
+
+      // Create the prompt with browser context
+      const contextualPrompt = `${browserContext}\n\nUser question: ${message}\n\nRespond helpfully based on the page context. If the user asks about the page, use the content above. Keep your response concise.`;
+
+      setAgentStatus(prev => ({ ...prev, thought: 'Generating response...' }));
+
+      // Get AI response
+      const response = await chat(
+        selectedCompanion.systemPrompt,
+        [...conversationHistory, { role: 'user', content: contextualPrompt }]
       );
 
-      if (result.success) {
-        setAgentResult(result.result || 'Task completed successfully');
-      } else {
-        setAgentResult(`Error: ${result.error}`);
+      // Parse response - check if it's JSON (action) or plain text (chat)
+      let responseText = response;
+      try {
+        const parsed = JSON.parse(response);
+        if (parsed.thought && parsed.action) {
+          // It's an action response
+          if (parsed.done && parsed.result) {
+            responseText = parsed.result;
+          } else {
+            responseText = parsed.thought;
+          }
+        }
+      } catch {
+        // It's plain text, use as is
       }
+
+      // Update the loading message with the response
+      setChatMessages(prev =>
+        prev.map(m =>
+          m.id === loadingMessage.id
+            ? { ...m, content: responseText, isLoading: false }
+            : m
+        )
+      );
+
     } catch (error) {
-      console.error('Agent error:', error);
-      setAgentResult(`Error: ${error instanceof Error ? error.message : String(error)}`);
+      console.error('Chat error:', error);
+      // Update loading message with error
+      setChatMessages(prev =>
+        prev.map(m =>
+          m.id === loadingMessage.id
+            ? { ...m, content: `Error: ${error instanceof Error ? error.message : 'Failed to get response'}`, isLoading: false }
+            : m
+        )
+      );
     } finally {
       setAgentStatus({
         isRunning: false,
@@ -227,18 +309,11 @@ function App() {
           }}
           selectedCompanion={selectedCompanion}
           onSelectCompanion={handleSelectCompanion}
+          messages={chatMessages}
+          onSendMessage={handleSendMessage}
           agentStatus={agentStatus}
-          agentResult={agentResult}
         />
       </div>
-
-      {/* Command input at bottom */}
-      <CommandInput
-        onSubmit={handleCommand}
-        isRunning={agentStatus.isRunning}
-        companion={selectedCompanion}
-        currentThought={agentStatus.thought}
-      />
 
       {/* Approval dialog */}
       {pendingApproval && (
