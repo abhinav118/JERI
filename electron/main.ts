@@ -19,7 +19,7 @@ function createWindow(): void {
     minWidth: 800,
     minHeight: 600,
     webPreferences: {
-      preload: join(__dirname, 'preload.js'),
+      preload: join(__dirname, '../preload/index.mjs'),
       nodeIntegration: false,
       contextIsolation: true,
       sandbox: false, // Need this for preload to work properly
@@ -46,7 +46,7 @@ function createWindow(): void {
     mainWindow.loadURL('http://localhost:5173');
     mainWindow.webContents.openDevTools({ mode: 'detach' });
   } else {
-    mainWindow.loadFile(join(__dirname, '../dist/index.html'));
+    mainWindow.loadFile(join(__dirname, '../renderer/index.html'));
   }
 
   // Show window when ready

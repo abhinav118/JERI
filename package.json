@@ -2,11 +2,13 @@
   "name": "ai-browser",
   "version": "1.0.0",
   "description": "AI-powered browser with companions",
-  "main": "dist-electron/main.js",
+  "type": "module",
+  "main": "out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
+    "start": "electron-vite preview",
     "postinstall": "electron-builder install-app-deps"
   },
   "dependencies": {
