@@ -13,6 +13,7 @@ export default function SettingsDialog({ isOpen, onClose }: SettingsDialogProps)
 
   useEffect(() => {
     if (isOpen) {
+      console.log('SettingsDialog opened');
       const key = getApiKey();
       if (key) {
         // Show masked key
@@ -25,8 +26,10 @@ export default function SettingsDialog({ isOpen, onClose }: SettingsDialogProps)
   }, [isOpen]);
 
   const handleSave = () => {
+    console.log('Save clicked, apiKeyInput:', apiKeyInput ? 'SET' : 'EMPTY');
     if (apiKeyInput && !apiKeyInput.includes('••••')) {
       setApiKey(apiKeyInput);
+      console.log('API key saved to localStorage');
       setSaved(true);
       setTimeout(() => {
         onClose();
@@ -37,16 +40,26 @@ export default function SettingsDialog({ isOpen, onClose }: SettingsDialogProps)
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 modal-overlay flex items-center justify-center z-50 no-drag">
-      <div className="bg-browser-bg border border-browser-surface rounded-xl shadow-2xl max-w-md w-full mx-4 animate-fade-in">
+    <div
+      className="fixed inset-0 flex items-center justify-center z-[100] no-drag"
+      style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)', backdropFilter: 'blur(4px)' }}
+    >
+      <div
+        className="rounded-xl shadow-2xl max-w-md w-full mx-4"
+        style={{ backgroundColor: '#1e1e2e', border: '1px solid #313244' }}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-browser-surface">
-          <h3 className="font-semibold text-browser-text">Settings</h3>
+        <div
+          className="flex items-center justify-between p-4"
+          style={{ borderBottom: '1px solid #313244' }}
+        >
+          <h3 className="font-semibold" style={{ color: '#cdd6f4' }}>Settings</h3>
           <button
             onClick={onClose}
-            className="p-1.5 rounded hover:bg-browser-surface transition-colors"
+            className="p-1.5 rounded hover:opacity-80 transition-colors"
+            style={{ color: '#a6adc8' }}
           >
-            <X className="w-5 h-5 text-browser-subtext" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
@@ -54,29 +67,41 @@ export default function SettingsDialog({ isOpen, onClose }: SettingsDialogProps)
         <div className="p-4 space-y-4">
           {/* API Key */}
           <div>
-            <label className="block text-sm font-medium text-browser-text mb-2">
+            <label className="block text-sm font-medium mb-2" style={{ color: '#cdd6f4' }}>
               Google Gemini API Key
             </label>
             <div className="flex items-center gap-2">
-              <div className="flex-1 flex items-center bg-browser-surface rounded-lg px-3 py-2">
-                <Key className="w-4 h-4 text-browser-subtext mr-2" />
+              <div
+                className="flex-1 flex items-center rounded-lg px-3 py-2"
+                style={{ backgroundColor: '#313244' }}
+              >
+                <Key className="w-4 h-4 mr-2" style={{ color: '#a6adc8' }} />
                 <input
-                  type="password"
+                  type="text"
                   value={apiKeyInput}
                   onChange={(e) => setApiKeyInput(e.target.value)}
-                  placeholder="AIza..."
-                  className="flex-1 bg-transparent text-browser-text placeholder-browser-subtext outline-none text-sm"
+                  placeholder="Paste your API key here..."
+                  className="flex-1 bg-transparent outline-none text-sm"
+                  style={{ color: '#cdd6f4' }}
                 />
               </div>
             </div>
-            <p className="text-xs text-browser-subtext mt-2">
-              Your API key is stored locally and only sent to Google's Gemini API.
+            <p className="text-xs mt-2" style={{ color: '#a6adc8' }}>
+              Get your API key from{' '}
+              <a
+                href="https://aistudio.google.com/app/apikey"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: '#89b4fa', textDecoration: 'underline' }}
+              >
+                Google AI Studio
+              </a>
             </p>
           </div>
 
           {/* Status indicator */}
           {hasApiKey() && (
-            <div className="flex items-center gap-2 text-browser-green text-sm">
+            <div className="flex items-center gap-2 text-sm" style={{ color: '#a6e3a1' }}>
               <Check className="w-4 h-4" />
               <span>API key configured</span>
             </div>
@@ -84,25 +109,25 @@ export default function SettingsDialog({ isOpen, onClose }: SettingsDialogProps)
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-3 p-4 border-t border-browser-surface">
+        <div
+          className="flex justify-end gap-3 p-4"
+          style={{ borderTop: '1px solid #313244' }}
+        >
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-lg border border-browser-surface hover:bg-browser-surface transition-colors text-sm"
+            className="px-4 py-2 rounded-lg text-sm transition-colors hover:opacity-80"
+            style={{ border: '1px solid #313244', color: '#cdd6f4' }}
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
             disabled={!apiKeyInput || apiKeyInput.includes('••••')}
-            className={`
-              px-4 py-2 rounded-lg flex items-center gap-2 text-sm transition-colors
-              ${
-                saved
-                  ? 'bg-browser-green text-browser-bg'
-                  : 'bg-browser-accent text-browser-bg hover:bg-browser-accent/90'
-              }
-              disabled:opacity-50 disabled:cursor-not-allowed
-            `}
+            className="px-4 py-2 rounded-lg flex items-center gap-2 text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{
+              backgroundColor: saved ? '#a6e3a1' : '#89b4fa',
+              color: '#1e1e2e'
+            }}
           >
             {saved ? (
               <>
