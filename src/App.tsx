@@ -156,7 +156,43 @@ function App() {
     }
   };
 
-  // Chat message handler
+  // Parse JSON from response (handles markdown code blocks)
+  const parseJsonResponse = (text: string): any | null => {
+    // Try to extract JSON from markdown code block
+    const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (jsonMatch) {
+      try {
+        return JSON.parse(jsonMatch[1].trim());
+      } catch {
+        return null;
+      }
+    }
+    // Try direct JSON parse
+    try {
+      return JSON.parse(text);
+    } catch {
+      return null;
+    }
+  };
+
+  // Execute a browser action
+  const executeAction = async (action: BrowserAction): Promise<string> => {
+    console.log('Executing action:', action);
+
+    try {
+      const result = await window.electronAPI.executeAction(action);
+      if (result.success) {
+        return result.result || 'Action completed';
+      } else {
+        return `Action failed: ${result.error}`;
+      }
+    } catch (error) {
+      console.error('Action execution error:', error);
+      return `Error: ${error instanceof Error ? error.message : 'Unknown error'}`;
+    }
+  };
+
+  // Chat message handler with action execution
   const handleSendMessage = async (message: string) => {
     console.log('handleSendMessage called with:', message);
 
@@ -185,7 +221,6 @@ function App() {
       isLoading: true,
     };
 
-    // Add both messages at once
     setChatMessages(prev => [...prev, userMessage, loadingMessage]);
 
     setAgentStatus({
@@ -206,7 +241,7 @@ function App() {
         browserContext = `Current Page:\n- URL: ${currentUrl || 'unknown'}\n- Title: ${currentTitle || 'unknown'}\n`;
       }
 
-      // Build conversation history for context (exclude the messages we just added)
+      // Build conversation history
       const conversationHistory = chatMessages
         .filter(m => !m.isLoading)
         .slice(-10)
@@ -215,40 +250,73 @@ function App() {
           content: m.content,
         }));
 
-      // Create the prompt with browser context
-      const contextualPrompt = `${browserContext}\n\nUser question: ${message}\n\nRespond helpfully based on the page context. If the user asks about the page, use the content above. Keep your response concise and conversational.`;
+      const contextualPrompt = `${browserContext}\n\nUser request: ${message}\n\nIf this requires browser action (clicking, typing, navigating), respond with JSON format: {"thought": "your reasoning", "action": "type|click|navigate|scroll", "selector": "css selector", "value": "text to type or url"}. If done or just chatting, respond normally.`;
 
       setAgentStatus(prev => ({ ...prev, thought: 'Generating response...' }));
-      console.log('Calling Gemini API...');
 
-      // Get AI response
-      const response = await chat(
-        selectedCompanion.systemPrompt,
-        [...conversationHistory, { role: 'user', content: contextualPrompt }]
-      );
+      // Agent loop - execute actions until done
+      let step = 0;
+      const maxSteps = 10;
+      let finalResponse = '';
+      let currentMessages = [...conversationHistory, { role: 'user' as const, content: contextualPrompt }];
 
-      console.log('Got response from Gemini:', response.substring(0, 100));
+      while (step < maxSteps) {
+        step++;
+        setAgentStatus(prev => ({ ...prev, currentStep: step, thought: `Step ${step}: Thinking...` }));
 
-      // Parse response - check if it's JSON (action) or plain text (chat)
-      let responseText = response;
-      try {
-        const parsed = JSON.parse(response);
-        if (parsed.thought && parsed.action) {
-          if (parsed.done && parsed.result) {
-            responseText = parsed.result;
-          } else {
-            responseText = parsed.thought;
+        const response = await chat(selectedCompanion.systemPrompt, currentMessages);
+        console.log(`Step ${step} response:`, response.substring(0, 200));
+
+        // Try to parse as action
+        const parsed = parseJsonResponse(response);
+
+        if (parsed && parsed.action && parsed.action !== 'done') {
+          // It's an action - execute it
+          setAgentStatus(prev => ({ ...prev, thought: parsed.thought || `Executing: ${parsed.action}` }));
+
+          // Build the action object
+          const action: BrowserAction = {
+            type: parsed.action,
+            selector: parsed.selector,
+            value: parsed.value,
+            direction: parsed.direction,
+            amount: parsed.amount,
+          };
+
+          // Execute the action
+          const actionResult = await executeAction(action);
+          console.log('Action result:', actionResult);
+
+          // Wait a bit for page to update
+          await new Promise(resolve => setTimeout(resolve, 1000));
+
+          // Get updated context
+          const newContext = await getBrowserContext();
+
+          // Add the action and result to conversation
+          currentMessages.push({ role: 'assistant', content: response });
+          currentMessages.push({
+            role: 'user',
+            content: `Action executed. Result: ${actionResult}\n\nUpdated page context:\n${newContext}\n\nContinue with next action or respond with the final result if done.`
+          });
+
+          // Check if action says done
+          if (parsed.done) {
+            finalResponse = parsed.result || parsed.thought || 'Task completed!';
+            break;
           }
+        } else {
+          // It's a regular response or done
+          finalResponse = response;
+          break;
         }
-      } catch {
-        // It's plain text, use as is
       }
 
-      // Update the loading message with the response
+      // Update the loading message with the final response
       setChatMessages(prev =>
         prev.map(m =>
           m.id === loadingMessage.id
-            ? { ...m, content: responseText, isLoading: false }
+            ? { ...m, content: finalResponse, isLoading: false }
             : m
         )
       );
@@ -257,7 +325,6 @@ function App() {
       console.error('Chat error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to get response';
 
-      // Update loading message with error
       setChatMessages(prev =>
         prev.map(m =>
           m.id === loadingMessage.id
