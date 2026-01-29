@@ -65,14 +65,24 @@ function createWindow(): void {
 
 // Handle app lifecycle
 app.whenReady().then(() => {
-  // Set up content security policy
+  // Set up content security policy - allow Google Generative AI API
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-    callback({
-      responseHeaders: {
-        ...details.responseHeaders,
-        'Content-Security-Policy': ["default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https:; img-src 'self' data: blob: https: http:;"],
-      },
-    });
+    // Skip CSP modification for the renderer process to allow API calls
+    if (details.url.startsWith('http://localhost') || details.url.startsWith('file://')) {
+      callback({
+        responseHeaders: {
+          ...details.responseHeaders,
+          'Content-Security-Policy': [
+            "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https:; " +
+            "connect-src 'self' https://generativelanguage.googleapis.com https://*.googleapis.com wss: ws: http://localhost:*; " +
+            "img-src 'self' data: blob: https: http:; " +
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval';"
+          ],
+        },
+      });
+    } else {
+      callback({ responseHeaders: details.responseHeaders });
+    }
   });
 
   createWindow();
