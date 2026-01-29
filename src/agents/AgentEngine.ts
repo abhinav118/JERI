@@ -68,7 +68,8 @@ export class AgentEngine {
         const response = await callClaude(
           companion.systemPrompt,
           this.history,
-          userMessage
+          userMessage,
+          screenshot
         );
 
         // 4. Parse the response
