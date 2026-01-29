@@ -4,8 +4,18 @@ import { Message } from '../types';
 // Get API key from environment variable (set in .env file as VITE_GEMINI_API_KEY)
 const ENV_API_KEY = import.meta.env.VITE_GEMINI_API_KEY as string | undefined;
 
+// Debug: Log what we got from env
+console.log('ENV_API_KEY from import.meta.env:', ENV_API_KEY ? 'SET (length: ' + ENV_API_KEY.length + ')' : 'NOT SET');
+
 // API key storage - can be overridden via settings
 let apiKey: string | null = ENV_API_KEY || null;
+
+// Also try to load from localStorage on init
+const storedKey = typeof localStorage !== 'undefined' ? localStorage.getItem('gemini_api_key') : null;
+if (storedKey && !apiKey) {
+  apiKey = storedKey;
+  console.log('Loaded API key from localStorage');
+}
 
 export function setApiKey(key: string): void {
   apiKey = key;
@@ -14,12 +24,19 @@ export function setApiKey(key: string): void {
 
 export function getApiKey(): string | null {
   // Priority: 1) Runtime set key, 2) localStorage, 3) env variable
+  console.log('getApiKey called - current apiKey:', apiKey ? 'SET' : 'NOT SET');
+
   if (apiKey) return apiKey;
+
   const stored = localStorage.getItem('gemini_api_key');
+  console.log('localStorage gemini_api_key:', stored ? 'SET' : 'NOT SET');
+
   if (stored) {
     apiKey = stored;
     return stored;
   }
+
+  console.log('ENV_API_KEY fallback:', ENV_API_KEY ? 'SET' : 'NOT SET');
   return ENV_API_KEY || null;
 }
 
