@@ -60,6 +60,9 @@ export default function Sidebar({
 
   if (!isOpen) return null;
 
+  // Debug logging
+  console.log('Sidebar rendering with messages:', messages.length, messages);
+
   // Convert ChatMessages to UIMessage format for the input component
   const uiMessages = messages.map(m => ({
     id: m.id,
@@ -121,6 +124,13 @@ export default function Sidebar({
 
       {/* Chat messages area */}
       <div className="flex-1 overflow-y-auto p-3 space-y-4">
+        {/* Debug info */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="text-xs text-browser-subtext mb-2">
+            Messages: {messages.length}
+          </div>
+        )}
+
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-4">
             <div className="w-16 h-16 rounded-full bg-browser-surface flex items-center justify-center mb-4">
@@ -173,9 +183,10 @@ export default function Sidebar({
                 <div
                   className={`max-w-[80%] rounded-2xl px-3 py-2 ${
                     message.role === 'user'
-                      ? 'bg-browser-accent text-browser-bg rounded-tr-sm'
+                      ? 'bg-browser-accent text-white rounded-tr-sm'
                       : 'bg-browser-surface text-browser-text rounded-tl-sm'
                   }`}
+                  style={{ minWidth: '60px' }}
                 >
                   {message.isLoading ? (
                     <div className="flex items-center gap-2">
@@ -183,7 +194,9 @@ export default function Sidebar({
                       <span className="text-sm">Thinking...</span>
                     </div>
                   ) : (
-                    <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
+                    <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                      {message.content || '(empty response)'}
+                    </p>
                   )}
                 </div>
               </div>

@@ -291,6 +291,9 @@ function App() {
     setPendingApproval(null);
   };
 
+  // Debug logging
+  console.log('App rendering, chatMessages:', chatMessages.length, chatMessages);
+
   return (
     <div className="h-full w-full flex flex-col bg-browser-bg">
       {/* Browser Chrome (tabs + address bar) */}
