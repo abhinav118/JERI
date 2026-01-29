@@ -68,7 +68,7 @@ export default function Sidebar({
   return (
     <div
       className="absolute right-0 top-0 h-full w-80 flex flex-col z-50"
-      style={{ backgroundColor: '#1e1e2e', borderLeft: '1px solid #313244' }}
+      style={{ backgroundColor: '#1e1e2e', borderLeft: '1px solid #313244', pointerEvents: 'auto' }}
     >
       {/* Header with dropdown */}
       <div className="flex items-center justify-between p-3" style={{ borderBottom: '1px solid #313244' }}>

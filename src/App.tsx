@@ -386,8 +386,9 @@ function App() {
       />
 
       {/* Main content area - BrowserView is positioned here via Electron */}
-      <div className="flex-1 relative">
-        {/* Sidebar */}
+      {/* pointer-events: none allows clicks to pass through to the BrowserView behind */}
+      <div className="flex-1 relative" style={{ pointerEvents: 'none' }}>
+        {/* Sidebar needs pointer-events: auto to be interactive */}
         <Sidebar
           isOpen={isSidebarOpen}
           onClose={() => {
