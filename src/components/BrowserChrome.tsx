@@ -72,8 +72,8 @@ export default function BrowserChrome({
     <div className="flex flex-col bg-browser-bg border-b border-browser-surface no-drag">
       {/* Tab bar */}
       <div className="flex items-center h-10 px-2 pt-2">
-        {/* macOS traffic light spacing */}
-        <div className="w-16 flex-shrink-0" />
+        {/* macOS traffic light spacing - this area is draggable for window movement */}
+        <div className="w-16 flex-shrink-0" style={{ WebkitAppRegion: 'drag' } as React.CSSProperties} />
 
         {/* Tabs */}
         <div className="flex-1 flex items-center gap-1 overflow-x-auto">
